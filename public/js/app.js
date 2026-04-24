@@ -431,7 +431,7 @@
       const db = await dbPromise;
 
       await db.put('blobs', blob, track.id);
-      await db.put('tracks', track, track.id);
+      await db.put('tracks', track); // Removi o track.id daqui para corrigir o DataError
       
       showToast('✅ Música salva offline com sucesso!');
     } catch (err) {

@@ -11,7 +11,9 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // --- API Routes ---
 
-// Search YouTube
+// Search YouTube using play-dl (More resilient on Vercel)
+const play = require('play-dl');
+
 app.get('/api/search', async (req, res) => {
   const query = req.query.q;
   if (!query) {
@@ -19,25 +21,39 @@ app.get('/api/search', async (req, res) => {
   }
 
   try {
-    const results = await youtubeSearch.GetListByKeyword(query, false, 20, [{ type: 'video' }]);
+    const results = await play.search(query, { limit: 20 });
+    
+    if (!results || results.length === 0) {
+      // Fallback a segunda API caso play-dl retorne vazio (Mecanismo anti-bloqueio)
+      const ytSearchFallback = await youtubeSearch.GetListByKeyword(query, false, 20, [{ type: 'video' }]);
+      if (ytSearchFallback && ytSearchFallback.items) {
+        const fallbacks = ytSearchFallback.items.filter(item => item.type === 'video').map(video => ({
+          id: video.id,
+          title: video.title || 'Sem título',
+          artist: video.channelTitle || video.channelName || 'Artista desconhecido',
+          thumbnail: video.thumbnail?.thumbnails?.[0]?.url || `https://i.ytimg.com/vi/${video.id}/hqdefault.jpg`,
+          duration: video.length?.simpleText || video.duration || '0:00',
+          durationSec: parseDuration(video.length?.simpleText || video.duration || '0:00'),
+          url: `https://www.youtube.com/watch?v=${video.id}`
+        }));
+        return res.json({ tracks: fallbacks });
+      }
+    }
 
-    const tracks = (results.items || [])
-      .filter(item => item.type === 'video')
-      .map(video => ({
-        id: video.id,
-        title: video.title || 'Sem título',
-        artist: video.channelTitle || video.channelName || 'Artista desconhecido',
-        thumbnail: video.thumbnail?.thumbnails?.[0]?.url
-          || `https://i.ytimg.com/vi/${video.id}/hqdefault.jpg`,
-        duration: video.length?.simpleText || video.duration || '0:00',
-        durationSec: parseDuration(video.length?.simpleText || video.duration || '0:00'),
-        url: `https://www.youtube.com/watch?v=${video.id}`
-      }));
+    const tracks = results.map(video => ({
+      id: video.id,
+      title: video.title || 'Sem título',
+      artist: video.channel?.name || 'Artista desconhecido',
+      thumbnail: video.thumbnails?.[0]?.url || `https://i.ytimg.com/vi/${video.id}/hqdefault.jpg`,
+      duration: video.durationRaw || '0:00',
+      durationSec: video.durationInSec || 0,
+      url: video.url || `https://www.youtube.com/watch?v=${video.id}`
+    }));
 
     res.json({ tracks });
   } catch (error) {
     console.error('Search error:', error.message);
-    res.status(500).json({ error: 'Failed to search. Try again.' });
+    res.status(500).json({ error: 'Failed to search. Try again. Details: ' + error.message });
   }
 });
 

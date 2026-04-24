@@ -68,7 +68,7 @@ app.get('/api/stream/:videoId', async (req, res) => {
       throw new Error('A URL de áudio não foi encontrada');
     }
   } catch (error) {
-    console.error('Stream error:', error.message);
+    console.error('Stream error:', error.stack || error);
     if (!res.headersSent) {
       res.status(500).json({ error: 'Failed to access stream url.' });
     }
@@ -108,7 +108,7 @@ app.get('/api/download/:videoId', async (req, res) => {
     dlProcess.stdout.pipe(res);
 
     dlProcess.catch((error) => {
-      console.error('yt-dlp download error:', error.message);
+      console.error('yt-dlp download error:', error.stack || error);
       if (!res.headersSent) {
         res.status(500).json({ error: 'Download failed' });
       }
@@ -119,7 +119,7 @@ app.get('/api/download/:videoId', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Download error:', error.message);
+    console.error('Download error:', error.stack || error);
     if (!res.headersSent) {
       res.status(500).json({ error: 'Failed to download.' });
     }

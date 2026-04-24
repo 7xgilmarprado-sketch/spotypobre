@@ -1,0 +1,19 @@
+{
+  "functions": {
+    "server.js": {
+      "includeFiles": "node_modules/youtube-dl-exec/bin/**",
+      "memory": 1024,
+      "maxDuration": 20
+    }
+  },
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/server.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/public/$1"
+    }
+  ]
+}

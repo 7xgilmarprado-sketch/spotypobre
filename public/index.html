@@ -167,14 +167,17 @@
       </div>
     </div>
 
-    <!-- Audio Element (hidden) -->
-    <audio id="audio-element" preload="auto"></audio>
+    <!-- YouTube IFrame Player (hidden) -->
+    <div id="yt-player" style="position:absolute; width:1px; height:1px; top:-9999px; left:-9999px; opacity:0; pointer-events:none;"></div>
   </div>
 
   <!-- Toast Notification -->
   <div id="toast" class="toast hidden">
     <span id="toast-message"></span>
   </div>
+
+  <!-- YouTube IFrame API -->
+  <script src="https://www.youtube.com/iframe_api"></script>
 
   <script src="/js/app.js"></script>
 </body>

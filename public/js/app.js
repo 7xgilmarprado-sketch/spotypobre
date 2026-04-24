@@ -36,7 +36,6 @@
     iconPlay: $('#icon-play'),
     iconPause: $('#icon-pause'),
     iconLoading: $('#icon-loading'),
-    audio: $('#audio-element'),
     toast: $('#toast'),
     toastMessage: $('#toast-message'),
     logo: $('#logo'),
@@ -51,6 +50,90 @@
     lastQuery: '',
     searchTimeout: null,
   };
+
+  let ytPlayer = null;
+  let ytPlayerReady = false;
+  let progressInterval = null;
+
+  window.onYouTubeIframeAPIReady = function() {
+    ytPlayer = new YT.Player('yt-player', {
+      height: '1',
+      width: '1',
+      videoId: '',
+      playerVars: {
+        'playsinline': 1,
+        'controls': 0,
+        'disablekb': 1,
+        'fs': 0,
+        'iv_load_policy': 3,
+        'rel': 0,
+        'modestbranding': 1
+      },
+      events: {
+        'onReady': () => { ytPlayerReady = true; },
+        'onStateChange': onPlayerStateChange,
+        'onError': onPlayerError
+      }
+    });
+  };
+
+  function updateMediaSession() {
+    if ('mediaSession' in navigator && state.currentIndex >= 0) {
+      const track = state.tracks[state.currentIndex];
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: track.title,
+        artist: track.artist,
+        artwork: [
+          { src: track.thumbnail, sizes: '96x96', type: 'image/jpeg' },
+          { src: track.thumbnail, sizes: '128x128', type: 'image/jpeg' },
+          { src: track.thumbnail, sizes: '256x256', type: 'image/jpeg' },
+        ]
+      });
+    }
+  }
+
+  function onPlayerStateChange(event) {
+    if (event.data === YT.PlayerState.PLAYING) {
+      setPlayerState('playing');
+      startProgressTracking();
+      updateMediaSession();
+    } else if (event.data === YT.PlayerState.PAUSED) {
+      setPlayerState('paused');
+      stopProgressTracking();
+    } else if (event.data === YT.PlayerState.BUFFERING) {
+      setPlayerState('loading');
+    } else if (event.data === YT.PlayerState.ENDED) {
+      stopProgressTracking();
+      playNext();
+    }
+  }
+
+  function onPlayerError(event) {
+    console.error('YT Player error:', event.data);
+    setPlayerState('paused');
+    showToast('❌ Erro ao carregar faixa a partir do YouTube');
+  }
+
+  function startProgressTracking() {
+    stopProgressTracking();
+    progressInterval = setInterval(() => {
+      if (!ytPlayer || !ytPlayerReady) return;
+      const currentTime = ytPlayer.getCurrentTime() || 0;
+      const duration = ytPlayer.getDuration() || 0;
+      
+      if (duration && isFinite(duration)) {
+        const pct = (currentTime / duration) * 100;
+        els.playerProgressBar.style.width = `${pct}%`;
+        els.playerProgressThumb.style.left = `${pct}%`;
+        els.playerCurrentTime.textContent = formatTime(currentTime);
+        els.playerTotalTime.textContent = formatTime(duration);
+      }
+    }, 500);
+  }
+
+  function stopProgressTracking() {
+    clearInterval(progressInterval);
+  }
 
   // --- Utilities ---
   function formatTime(seconds) {
@@ -236,14 +319,16 @@
     // Set loading state
     setPlayerState('loading');
 
-    // Set audio source
-    els.audio.src = `/api/stream/${track.id}`;
-    els.audio.load();
-    els.audio.play().catch(err => {
-      console.error('Playback failed:', err);
-      setPlayerState('paused');
-      showToast('Erro ao reproduzir. Tente outra música.');
-    });
+    // Load and play via YouTube IFrame
+    if (ytPlayerReady) {
+      ytPlayer.loadVideoById(track.id);
+    } else {
+      showToast('Carregando player do YouTube...');
+      // Allow it to retry briefly if API just loaded
+      setTimeout(() => {
+        if (ytPlayerReady) ytPlayer.loadVideoById(track.id);
+      }, 1500);
+    }
 
     // Highlight active track
     updateActiveTrack();
@@ -281,14 +366,12 @@
 
   function togglePlayPause() {
     if (state.isLoading) return;
-    if (!els.audio.src || state.currentIndex === -1) return;
+    if (!ytPlayerReady || state.currentIndex === -1) return;
 
     if (state.isPlaying) {
-      els.audio.pause();
+      ytPlayer.pauseVideo();
     } else {
-      els.audio.play().catch(() => {
-        showToast('Erro ao reproduzir');
-      });
+      ytPlayer.playVideo();
     }
   }
 
@@ -301,8 +384,8 @@
   function playPrev() {
     if (state.tracks.length === 0) return;
     // If more than 3 seconds in, restart current track
-    if (els.audio.currentTime > 3) {
-      els.audio.currentTime = 0;
+    if (ytPlayerReady && ytPlayer.getCurrentTime() > 3) {
+      ytPlayer.seekTo(0, true);
       return;
     }
     const prev = state.currentIndex <= 0 ? state.tracks.length - 1 : state.currentIndex - 1;
@@ -333,51 +416,6 @@
     }, 2000);
   }
 
-  // --- Audio Events ---
-  els.audio.addEventListener('playing', () => {
-    setPlayerState('playing');
-  });
-
-  els.audio.addEventListener('pause', () => {
-    if (!state.isLoading) {
-      setPlayerState('paused');
-    }
-  });
-
-  els.audio.addEventListener('waiting', () => {
-    setPlayerState('loading');
-  });
-
-  els.audio.addEventListener('canplay', () => {
-    if (state.isPlaying || !els.audio.paused) {
-      setPlayerState('playing');
-    }
-  });
-
-  els.audio.addEventListener('timeupdate', () => {
-    const { currentTime, duration } = els.audio;
-    if (isNaN(duration) || duration === 0) return;
-
-    const pct = (currentTime / duration) * 100;
-    els.playerProgressBar.style.width = `${pct}%`;
-    els.playerProgressThumb.style.left = `${pct}%`;
-    els.playerCurrentTime.textContent = formatTime(currentTime);
-
-    if (duration && isFinite(duration)) {
-      els.playerTotalTime.textContent = formatTime(duration);
-    }
-  });
-
-  els.audio.addEventListener('ended', () => {
-    playNext();
-  });
-
-  els.audio.addEventListener('error', (e) => {
-    console.error('Audio error:', e);
-    setPlayerState('paused');
-    showToast('❌ Erro ao carregar o áudio');
-  });
-
   // --- Progress Bar Seek ---
   let isSeeking = false;
 
@@ -389,8 +427,12 @@
     els.playerProgressBar.style.width = `${pct * 100}%`;
     els.playerProgressThumb.style.left = `${pct * 100}%`;
     
-    if (els.audio.duration && isFinite(els.audio.duration)) {
-      els.audio.currentTime = pct * els.audio.duration;
+    if (ytPlayerReady) {
+      const duration = ytPlayer.getDuration();
+      if (duration && isFinite(duration)) {
+        ytPlayer.seekTo(pct * duration, true);
+        if (!state.isPlaying) ytPlayer.playVideo();
+      }
     }
   }
 
@@ -508,23 +550,8 @@
 
   // --- Media Session API (lock screen controls) ---
   if ('mediaSession' in navigator) {
-    els.audio.addEventListener('playing', () => {
-      if (state.currentIndex >= 0) {
-        const track = state.tracks[state.currentIndex];
-        navigator.mediaSession.metadata = new MediaMetadata({
-          title: track.title,
-          artist: track.artist,
-          artwork: [
-            { src: track.thumbnail, sizes: '96x96', type: 'image/jpeg' },
-            { src: track.thumbnail, sizes: '128x128', type: 'image/jpeg' },
-            { src: track.thumbnail, sizes: '256x256', type: 'image/jpeg' },
-          ]
-        });
-      }
-    });
-
-    navigator.mediaSession.setActionHandler('play', () => els.audio.play());
-    navigator.mediaSession.setActionHandler('pause', () => els.audio.pause());
+    navigator.mediaSession.setActionHandler('play', () => { if (ytPlayerReady) ytPlayer.playVideo(); });
+    navigator.mediaSession.setActionHandler('pause', () => { if (ytPlayerReady) ytPlayer.pauseVideo(); });
     navigator.mediaSession.setActionHandler('previoustrack', playPrev);
     navigator.mediaSession.setActionHandler('nexttrack', playNext);
   }

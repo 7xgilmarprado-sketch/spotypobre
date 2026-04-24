@@ -229,12 +229,16 @@
 
   // --- Auth & Supabase ---
   async function initAuth() {
-    const { data: { session } } = await supabase.auth.getSession();
-    handleAuthChange(session?.user || null);
-
-    supabase.auth.onAuthStateChange((_event, session) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
       handleAuthChange(session?.user || null);
-    });
+
+      supabase.auth.onAuthStateChange((_event, session) => {
+        handleAuthChange(session?.user || null);
+      });
+    } catch (e) {
+      console.warn("Supabase offline ou indisponível.");
+    }
   }
 
   function handleAuthChange(user) {
@@ -623,7 +627,9 @@
     updateActiveUI();
 
     // Stop both players first
-    if(ytPlayerReady) ytPlayer.pauseVideo();
+    if(ytPlayer && ytPlayerReady && typeof ytPlayer.pauseVideo === 'function') {
+      try { ytPlayer.pauseVideo(); } catch(e){}
+    }
     els.offlineAudio.pause();
 
     if (state.playingMode === 'offline') {
@@ -798,9 +804,14 @@
   function updateMediaSession() {
     if ('mediaSession' in navigator && state.currentIndex >= 0 && state.tracks[state.currentIndex]) {
       const t = state.tracks[state.currentIndex];
+      const artwork = [];
+      if (navigator.onLine && t.thumbnail) {
+        artwork.push({ src: t.thumbnail, sizes: '256x256', type: 'image/jpeg' });
+      }
+      
       navigator.mediaSession.metadata = new MediaMetadata({
         title: t.title, artist: t.artist,
-        artwork: [{ src: t.thumbnail, sizes: '256x256', type: 'image/jpeg' }]
+        artwork: artwork
       });
     }
   }

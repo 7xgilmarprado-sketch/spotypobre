@@ -1,11 +1,15 @@
 // ===== SPOTYPOBRE — Service Worker =====
 
-const CACHE_NAME = 'spotypobre-v3';
+const CACHE_NAME = 'spotypobre-v4';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/css/style.css',
   '/js/app.js',
+  '/js/supabase-config.js',
+  'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
+  'https://cdn.jsdelivr.net/npm/idb@7/build/umd.js',
+  'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap'
 ];
 
 // Install — cache static assets

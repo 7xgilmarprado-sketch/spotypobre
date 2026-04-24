@@ -1,13 +1,10 @@
 const express = require('express');
-const { spawn } = require('child_process');
+const youtubedl = require('youtube-dl-exec');
 const youtubeSearch = require('youtube-search-api');
 const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-
-// Path to yt-dlp binary (bundled with youtube-dl-exec)
-const YT_DLP = path.join(__dirname, 'node_modules', 'youtube-dl-exec', 'bin', 'yt-dlp.exe');
 
 // Serve static files
 app.use(express.static(path.join(__dirname, 'public')));
@@ -44,11 +41,10 @@ app.get('/api/search', async (req, res) => {
   }
 });
 
-// Stream audio using yt-dlp (pipe through server to avoid CORS)
+// Stream audio using yt-dlp (redirects to avoid Vercel 10s serverless limits)
 app.get('/api/stream/:videoId', async (req, res) => {
   const { videoId } = req.params;
 
-  // Validate video ID format
   if (!/^[a-zA-Z0-9_-]{11}$/.test(videoId)) {
     return res.status(400).json({ error: 'Invalid video ID' });
   }
@@ -56,67 +52,30 @@ app.get('/api/stream/:videoId', async (req, res) => {
   const url = `https://www.youtube.com/watch?v=${videoId}`;
 
   try {
-    // Set headers for audio streaming
-    res.setHeader('Content-Type', 'audio/webm');
-    res.setHeader('Accept-Ranges', 'none');
-    res.setHeader('Cache-Control', 'public, max-age=1800');
-    res.setHeader('Transfer-Encoding', 'chunked');
-
-    // Pipe audio directly from yt-dlp stdout to response
-    const ytdlp = spawn(YT_DLP, [
-      '-f', 'bestaudio[ext=webm]/bestaudio[ext=m4a]/bestaudio',
-      '-o', '-',
-      '--no-warnings',
-      '--no-playlist',
-      '--no-check-certificates',
-      url
-    ]);
-
-    let hasData = false;
-
-    ytdlp.stdout.on('data', () => {
-      hasData = true;
+    const audioUrl = await youtubedl(url, {
+      getUrl: true,
+      format: 'bestaudio[ext=webm]/bestaudio[ext=m4a]/bestaudio',
+      noWarnings: true,
+      noPlaylist: true,
+      noCheckCertificates: true
     });
 
-    ytdlp.stdout.pipe(res);
-
-    ytdlp.stderr.on('data', (data) => {
-      const msg = data.toString();
-      // Only log actual errors, not download progress
-      if (!msg.includes('[download]') && !msg.includes('%') && !msg.includes('[info]') && !msg.includes('[youtube]')) {
-        console.error('yt-dlp stream stderr:', msg.trim());
-      }
-    });
-
-    ytdlp.on('close', (code) => {
-      if (code !== 0 && !hasData) {
-        console.error(`yt-dlp stream exited with code ${code}`);
-        if (!res.headersSent) {
-          res.status(500).json({ error: 'Failed to stream audio' });
-        }
-      }
-    });
-
-    ytdlp.on('error', (err) => {
-      console.error('yt-dlp spawn error:', err.message);
-      if (!res.headersSent) {
-        res.status(500).json({ error: 'Failed to start audio extraction' });
-      }
-    });
-
-    // Handle client disconnect — kill yt-dlp process
-    req.on('close', () => {
-      ytdlp.kill('SIGTERM');
-    });
+    if (audioUrl) {
+      // Vercel Serverless limits to 10s execution. 
+      // Redirecting to Google's audio URL lets the browser handle streaming without timeouts.
+      return res.redirect(302, audioUrl);
+    } else {
+      throw new Error('A URL de áudio não foi encontrada');
+    }
   } catch (error) {
     console.error('Stream error:', error.message);
     if (!res.headersSent) {
-      res.status(500).json({ error: 'Failed to stream audio.' });
+      res.status(500).json({ error: 'Failed to access stream url.' });
     }
   }
 });
 
-// Download audio using yt-dlp (pipe through server)
+// Download audio using yt-dlp
 app.get('/api/download/:videoId', async (req, res) => {
   const { videoId } = req.params;
 
@@ -127,68 +86,38 @@ app.get('/api/download/:videoId', async (req, res) => {
   const url = `https://www.youtube.com/watch?v=${videoId}`;
 
   try {
-    // First get the title
-    const getTitle = spawn(YT_DLP, [
-      '--get-title',
-      '--no-warnings',
-      '--no-playlist',
-      url
-    ]);
+    const titleObj = await youtubedl(url, {
+      dumpJson: true,
+      noWarnings: true,
+      noPlaylist: true,
+    });
+    
+    const title = titleObj.title || 'download';
+    const safeTitle = title.replace(/[<>:"/\\|?*]/g, '').trim();
 
-    let title = '';
-    getTitle.stdout.on('data', (data) => {
-      title += data.toString().trim();
+    res.setHeader('Content-Type', 'audio/webm');
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(safeTitle)}.webm"`);
+
+    const dlProcess = youtubedl.exec(url, {
+      format: 'bestaudio[ext=webm]/bestaudio[ext=m4a]/bestaudio',
+      output: '-',
+      noWarnings: true,
+      noPlaylist: true
     });
 
-    getTitle.on('close', () => {
-      const safeTitle = (title || 'download').replace(/[<>:"/\\|?*]/g, '').trim();
+    dlProcess.stdout.pipe(res);
 
-      // Set download headers
-      res.setHeader('Content-Type', 'audio/webm');
-      res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(safeTitle)}.webm"`);
-
-      // Stream the audio through yt-dlp to stdout
-      const dl = spawn(YT_DLP, [
-        '-f', 'bestaudio[ext=webm]/bestaudio[ext=m4a]/bestaudio',
-        '-o', '-',
-        '--no-warnings',
-        '--no-playlist',
-        url
-      ]);
-
-      dl.stdout.pipe(res);
-
-      dl.stderr.on('data', (data) => {
-        const msg = data.toString();
-        if (!msg.includes('[download]') && !msg.includes('%')) {
-          console.error('yt-dlp download stderr:', msg);
-        }
-      });
-
-      dl.on('close', (code) => {
-        if (code !== 0 && !res.writableEnded) {
-          console.error(`yt-dlp download exited with code ${code}`);
-        }
-      });
-
-      dl.on('error', (err) => {
-        console.error('yt-dlp download spawn error:', err.message);
-        if (!res.headersSent) {
-          res.status(500).json({ error: 'Download failed' });
-        }
-      });
-
-      req.on('close', () => {
-        dl.kill();
-      });
-    });
-
-    getTitle.on('error', (err) => {
-      console.error('yt-dlp title error:', err.message);
+    dlProcess.catch((error) => {
+      console.error('yt-dlp download error:', error.message);
       if (!res.headersSent) {
-        res.status(500).json({ error: 'Failed to get title' });
+        res.status(500).json({ error: 'Download failed' });
       }
     });
+
+    req.on('close', () => {
+      if (dlProcess.child) dlProcess.child.kill();
+    });
+
   } catch (error) {
     console.error('Download error:', error.message);
     if (!res.headersSent) {
@@ -212,6 +141,5 @@ app.get('*', (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`\n🎵 Spotypobre rodando em http://localhost:${PORT}`);
-  console.log(`📦 yt-dlp: ${YT_DLP}\n`);
+  console.log(`\n🎵 Spotypobre rodando na porta ${PORT}\n`);
 });

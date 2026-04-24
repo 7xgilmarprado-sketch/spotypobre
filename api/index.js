@@ -69,7 +69,7 @@ app.get('/api/download/:videoId', async (req, res) => {
   try {
     res.setHeader('Content-Type', 'audio/webm');
     const dlProcess = youtubedl.exec(url, {
-      format: 'bestaudio[ext=webm]/bestaudio[ext=m4a]/bestaudio',
+      format: 'bestaudio[abr<=64][ext=webm]/ba[ext=webm]/ba',
       output: '-',
       noWarnings: true,
       noPlaylist: true

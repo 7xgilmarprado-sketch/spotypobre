@@ -379,8 +379,11 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="#ff4444" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
           </button>
         ` : `
-          <button class="track-download-btn download-offline-btn" aria-label="Baixar Offline">
+          <button class="track-download-btn download-offline-btn" title="Salvar no App (Offline)">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12M12 15l-4-4M12 15l4-4M5 20h14"/></svg>
+          </button>
+          <button class="track-download-btn download-device-btn" title="Salvar no Dispositivo (Arquivo)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#1DB954" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
           </button>
         `}
       </div>
@@ -409,6 +412,14 @@
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         saveTrackOffline(tracks[i], btn);
+      });
+    });
+
+    // Bind Native Device Download
+    container.querySelectorAll('.download-device-btn').forEach((btn, i) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        downloadTrackToDevice(tracks[i]);
       });
     });
 
@@ -446,6 +457,19 @@
     } finally {
       btnElement.classList.remove('downloading');
     }
+  }
+
+  async function downloadTrackToDevice(track) {
+    if (!track || !track.id) return;
+    showToast('🚀 Iniciando download do arquivo...', 2000);
+    
+    const url = `/api/download/${track.id}`;
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${track.title}.webm`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   }
 
   async function deleteTrackOffline(id) {

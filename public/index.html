@@ -30,36 +30,48 @@
           </div>
           <span class="logo-text">Spotypobre</span>
         </div>
+        <nav class="main-nav">
+          <button id="nav-home" class="nav-btn active">Buscar</button>
+          <button id="nav-playlists" class="nav-btn hidden">Playlists</button>
+          <button id="nav-offline" class="nav-btn">Offline</button>
+          <button id="nav-login" class="nav-btn btn-primary">Entrar</button>
+          <button id="nav-user" class="nav-btn hidden">Perfil</button>
+        </nav>
       </div>
     </header>
 
-    <!-- Search Section -->
-    <section id="search-section" class="search-section">
-      <div class="search-container">
-        <div class="search-box" id="search-box">
-          <svg class="search-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/>
-            <path d="M16 16L20 20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-          </svg>
-          <input 
-            type="text" 
-            id="search-input" 
-            class="search-input" 
-            placeholder="O que você quer ouvir?" 
-            autocomplete="off"
-            spellcheck="false"
-          >
-          <button id="search-clear" class="search-clear hidden" aria-label="Limpar busca">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            </svg>
-          </button>
-        </div>
-      </div>
-    </section>
+    <!-- Views Container -->
+    <div id="views-container" class="views-container">
+      
+      <!-- View: Home / Search -->
+      <div id="view-home" class="view active">
+        <!-- Search Section -->
+        <section id="search-section" class="search-section">
+          <div class="search-container">
+            <div class="search-box" id="search-box">
+              <svg class="search-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/>
+                <path d="M16 16L20 20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+              <input 
+                type="text" 
+                id="search-input" 
+                class="search-input" 
+                placeholder="O que você quer ouvir?" 
+                autocomplete="off"
+                spellcheck="false"
+              >
+              <button id="search-clear" class="search-clear hidden" aria-label="Limpar busca">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </section>
 
-    <!-- Main Content -->
-    <main id="main-content" class="main-content">
+        <!-- Main Content -->
+        <main id="main-content" class="main-content">
       <!-- Welcome Screen -->
       <div id="welcome-screen" class="welcome-screen">
         <div class="welcome-content">
@@ -124,7 +136,77 @@
           <button id="error-retry" class="btn-retry">Tentar novamente</button>
         </div>
       </div>
-    </main>
+        </main>
+      </div> <!-- End View Home -->
+
+      <!-- View: Playlists (Online) -->
+      <div id="view-playlists" class="view hidden">
+        <main class="main-content">
+          <div class="playlists-header">
+            <h2>Minhas Playlists</h2>
+            <button id="btn-create-playlist" class="btn-primary">Nova Playlist</button>
+          </div>
+          <div id="playlists-list" class="playlists-grid">
+            <!-- Playlists renderizadas aqui -->
+          </div>
+          
+          <div id="playlist-details" class="playlist-details hidden">
+            <button id="btn-back-playlists" class="btn-back">← Voltar</button>
+            <h2 id="current-playlist-title" class="playlist-title-large">Nome da Playlist</h2>
+            <div id="playlist-tracks-list" class="results-list">
+              <!-- Faixas da playlist renderizadas aqui -->
+            </div>
+          </div>
+        </main>
+      </div>
+
+      <!-- View: Offline -->
+      <div id="view-offline" class="view hidden">
+        <main class="main-content">
+          <div class="offline-header">
+            <h2>Músicas Offline</h2>
+            <p>Músicas baixadas para ouvir sem internet.</p>
+          </div>
+          <div id="offline-empty-state" class="empty-state">
+            Nenhuma música baixada ainda.
+          </div>
+          <div id="offline-tracks-list" class="results-list">
+            <!-- Faixas offline renderizadas aqui -->
+          </div>
+        </main>
+      </div>
+
+    </div> <!-- End Views Container -->
+
+    <!-- Add to Playlist Modal -->
+    <div id="modal-add-to-playlist" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Adicionar à Playlist</h3>
+          <button id="btn-close-modal-playlist" class="btn-close">×</button>
+        </div>
+        <div id="modal-playlists-list" class="modal-list">
+          <!-- Lista de playlists para adicionar a música -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Login Modal -->
+    <div id="modal-auth" class="modal hidden">
+      <div class="modal-content auth-content">
+        <div class="modal-header">
+          <h3 id="auth-title">Entrar</h3>
+          <button id="btn-close-auth" class="btn-close">×</button>
+        </div>
+        <form id="auth-form" class="auth-form">
+          <input type="email" id="auth-email" placeholder="E-mail" required>
+          <input type="password" id="auth-password" placeholder="Senha" required minlength="6">
+          <div id="auth-error" class="auth-error hidden"></div>
+          <button type="submit" id="btn-submit-auth" class="btn-primary auth-submit">Entrar</button>
+          <p class="auth-toggle">Ainda não tem conta? <span id="btn-toggle-auth">Criar conta</span></p>
+        </form>
+      </div>
+    </div>
 
     <!-- Player Bar -->
     <div id="player-bar" class="player-bar hidden">
@@ -154,7 +236,14 @@
           </button>
         </div>
         <div class="player-actions">
-          <button id="btn-download-current" class="player-btn player-btn-download" aria-label="Download">
+          <div class="volume-container">
+            <svg class="volume-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+              <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+            </svg>
+            <input type="range" id="volume-slider" class="volume-slider" min="0" max="100" value="100">
+          </div>
+          <button id="btn-download-current" class="player-btn player-btn-download" aria-label="Baixar Offline">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
               <path d="M12 3v12M12 15l-4-4M12 15l4-4M5 20h14"/>
             </svg>
@@ -176,9 +265,16 @@
     <span id="toast-message"></span>
   </div>
 
-  <!-- YouTube IFrame API -->
+  <!-- Offline Audio Fallback (For IndexedDB blobs) -->
+  <audio id="offline-audio" style="display:none;"></audio>
+
+  <!-- External Libraries -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/idb@7/build/umd.js"></script>
   <script src="https://www.youtube.com/iframe_api"></script>
 
+  <!-- App Logic -->
+  <script src="/js/supabase-config.js"></script>
   <script src="/js/app.js"></script>
 </body>
 </html>

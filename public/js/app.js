@@ -427,7 +427,9 @@
       const response = await fetch(`/api/download/${track.id}`);
       if (!response.ok) throw new Error('Download falhou');
       
-      const blob = await response.blob();
+      const rawBlob = await response.blob();
+      // Forçamos o tipo para evitar erro de RANGE
+      const blob = new Blob([rawBlob], { type: 'audio/webm' });
       const db = await dbPromise;
 
       await db.put('blobs', blob, track.id);

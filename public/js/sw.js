@@ -1,6 +1,6 @@
 // ===== SPOTYPOBRE — Service Worker =====
 
-const CACHE_NAME = 'spotypobre-v2';
+const CACHE_NAME = 'spotypobre-v3';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -39,6 +39,11 @@ self.addEventListener('fetch', (event) => {
 
   // Don't cache API calls (search, stream, download)
   if (url.pathname.startsWith('/api/')) {
+    return;
+  }
+
+  // Bypass SW for Range requests (Media)
+  if (request.headers.get('range')) {
     return;
   }
 

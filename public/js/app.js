@@ -214,15 +214,17 @@
 
   // Home Section Visibility
   function showHomeSection(section) {
-    els.welcomeScreen.classList.add('hidden');
-    els.loadingState.classList.add('hidden');
-    els.resultsContainer.classList.add('hidden');
-    els.errorState.classList.add('hidden');
-    if(section) $(`#${section}-state` || `#${section}-screen` || `#${section}-container`).classList.remove('hidden');
-    else if (section === 'welcome') els.welcomeScreen.classList.remove('hidden');
-    else if (section === 'loading') els.loadingState.classList.remove('hidden');
-    else if (section === 'results') els.resultsContainer.classList.remove('hidden');
-    else if (section === 'error') els.errorState.classList.remove('hidden');
+    // Hide everything first
+    const sections = [els.welcomeScreen, els.loadingState, els.resultsContainer, els.errorState];
+    sections.forEach(s => s?.classList.add('hidden'));
+
+    if (!section) return;
+
+    // Show specific section
+    if (section === 'welcome') els.welcomeScreen?.classList.remove('hidden');
+    else if (section === 'loading') els.loadingState?.classList.remove('hidden');
+    else if (section === 'results') els.resultsContainer?.classList.remove('hidden');
+    else if (section === 'error') els.errorState?.classList.remove('hidden');
   }
 
   // --- Auth & Supabase ---

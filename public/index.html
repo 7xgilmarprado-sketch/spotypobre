@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="description" content="Spotypobre - Ouça suas músicas favoritas direto do YouTube. Busque, ouça e baixe em MP3!">
+  <meta name="theme-color" content="#1DB954">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Spotypobre - Música pra todo mundo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <!-- App Shell -->
+  <div id="app">
+    <!-- Header -->
+    <header id="header" class="header">
+      <div class="header-inner">
+        <div class="logo" id="logo">
+          <div class="logo-icon">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="12" cy="12" r="11" fill="#1DB954"/>
+              <path d="M7 14.5C9.5 13 13.5 12.5 17 14" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+              <path d="M8 11.5C10.5 10 14 9.5 17 11" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+              <path d="M9 8.5C11 7.5 14.5 7 17 8.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <span class="logo-text">Spotypobre</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Search Section -->
+    <section id="search-section" class="search-section">
+      <div class="search-container">
+        <div class="search-box" id="search-box">
+          <svg class="search-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/>
+            <path d="M16 16L20 20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <input 
+            type="text" 
+            id="search-input" 
+            class="search-input" 
+            placeholder="O que você quer ouvir?" 
+            autocomplete="off"
+            spellcheck="false"
+          >
+          <button id="search-clear" class="search-clear hidden" aria-label="Limpar busca">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Main Content -->
+    <main id="main-content" class="main-content">
+      <!-- Welcome Screen -->
+      <div id="welcome-screen" class="welcome-screen">
+        <div class="welcome-content">
+          <div class="welcome-icon">
+            <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="40" cy="40" r="38" stroke="url(#grad1)" stroke-width="2" fill="none"/>
+              <path d="M32 28V52L56 40L32 28Z" fill="url(#grad2)"/>
+              <defs>
+                <linearGradient id="grad1" x1="0" y1="0" x2="80" y2="80">
+                  <stop offset="0%" stop-color="#1DB954"/>
+                  <stop offset="100%" stop-color="#1ed760"/>
+                </linearGradient>
+                <linearGradient id="grad2" x1="32" y1="28" x2="56" y2="52">
+                  <stop offset="0%" stop-color="#1DB954"/>
+                  <stop offset="100%" stop-color="#1ed760"/>
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+          <h1 class="welcome-title">Busque sua música</h1>
+          <p class="welcome-subtitle">Pesquise qualquer música, artista ou álbum e ouça direto do YouTube</p>
+          <div class="welcome-tags">
+            <button class="tag-btn" data-search="Top hits Brasil 2026">🇧🇷 Top Brasil</button>
+            <button class="tag-btn" data-search="Lo-fi hip hop beats">🎧 Lo-fi</button>
+            <button class="tag-btn" data-search="Funk brasileiro 2026">🔥 Funk</button>
+            <button class="tag-btn" data-search="Sertanejo universitário">🤠 Sertanejo</button>
+            <button class="tag-btn" data-search="Rock internacional clássico">🎸 Rock</button>
+            <button class="tag-btn" data-search="Trap brasileiro">💎 Trap</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Loading State -->
+      <div id="loading-state" class="loading-state hidden">
+        <div class="skeleton-card" aria-hidden="true"></div>
+        <div class="skeleton-card" aria-hidden="true"></div>
+        <div class="skeleton-card" aria-hidden="true"></div>
+        <div class="skeleton-card" aria-hidden="true"></div>
+        <div class="skeleton-card" aria-hidden="true"></div>
+      </div>
+
+      <!-- Search Results -->
+      <div id="results-container" class="results-container hidden">
+        <div class="results-header">
+          <h2 id="results-title" class="results-title">Resultados</h2>
+          <span id="results-count" class="results-count"></span>
+        </div>
+        <div id="results-list" class="results-list">
+          <!-- Tracks will be injected here -->
+        </div>
+      </div>
+
+      <!-- Error State -->
+      <div id="error-state" class="error-state hidden">
+        <div class="error-content">
+          <svg class="error-icon" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="32" cy="32" r="28" stroke="#ff4444" stroke-width="2" fill="none"/>
+            <path d="M22 22l20 20M42 22L22 42" stroke="#ff4444" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <h3 class="error-title">Ops! Algo deu errado</h3>
+          <p id="error-message" class="error-message">Não foi possível buscar as músicas. Tente novamente.</p>
+          <button id="error-retry" class="btn-retry">Tentar novamente</button>
+        </div>
+      </div>
+    </main>
+
+    <!-- Player Bar -->
+    <div id="player-bar" class="player-bar hidden">
+      <div class="player-progress-container" id="player-progress-container">
+        <div class="player-progress-bar" id="player-progress-bar"></div>
+        <div class="player-progress-thumb" id="player-progress-thumb"></div>
+      </div>
+      <div class="player-inner">
+        <div class="player-track-info" id="player-track-info">
+          <img id="player-thumbnail" class="player-thumbnail" src="" alt="Album art">
+          <div class="player-text">
+            <div class="player-title marquee" id="player-title">—</div>
+            <div class="player-artist" id="player-artist">—</div>
+          </div>
+        </div>
+        <div class="player-controls">
+          <button id="btn-prev" class="player-btn" aria-label="Anterior">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+          </button>
+          <button id="btn-play-pause" class="player-btn player-btn-main" aria-label="Play/Pause">
+            <svg id="icon-play" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            <svg id="icon-pause" viewBox="0 0 24 24" fill="currentColor" class="hidden"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+            <div id="icon-loading" class="btn-loading hidden"><div class="spinner"></div></div>
+          </button>
+          <button id="btn-next" class="player-btn" aria-label="Próximo">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
+          </button>
+        </div>
+        <div class="player-actions">
+          <button id="btn-download-current" class="player-btn player-btn-download" aria-label="Download">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <path d="M12 3v12M12 15l-4-4M12 15l4-4M5 20h14"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div class="player-time-row">
+        <span id="player-current-time" class="player-time">0:00</span>
+        <span id="player-total-time" class="player-time">0:00</span>
+      </div>
+    </div>
+
+    <!-- Audio Element (hidden) -->
+    <audio id="audio-element" preload="auto"></audio>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast hidden">
+    <span id="toast-message"></span>
+  </div>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>

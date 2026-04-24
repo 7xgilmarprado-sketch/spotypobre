@@ -1,0 +1,25 @@
+{
+  "name": "spotypobre",
+  "version": "1.0.0",
+  "description": "Spotypobre - Clone do Spotify que busca músicas no YouTube",
+  "main": "server.js",
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js"
+  },
+  "keywords": [
+    "spotify",
+    "clone",
+    "youtube",
+    "music",
+    "streaming"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@distube/ytdl-core": "^4.16.12",
+    "express": "^4.21.0",
+    "youtube-dl-exec": "^3.1.5",
+    "youtube-search-api": "^2.0.1"
+  }
+}

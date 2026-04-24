@@ -19,7 +19,11 @@
   "dependencies": {
     "@distube/ytdl-core": "^4.16.12",
     "express": "^4.21.0",
+    "play-dl": "^1.9.7",
     "youtube-dl-exec": "^3.1.5",
-    "youtube-search-api": "^2.0.1"
+    "youtube-ext": "^1.1.25",
+    "youtube-search-api": "^2.0.1",
+    "youtubei.js": "^17.0.1",
+    "yt-stream": "^1.7.4"
   }
 }

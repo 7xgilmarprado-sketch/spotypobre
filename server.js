@@ -140,6 +140,12 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-app.listen(PORT, () => {
-  console.log(`\n🎵 Spotypobre rodando na porta ${PORT}\n`);
-});
+// Conditionally start listening if not on Vercel
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`\n🎵 Spotypobre rodando na porta ${PORT}\n`);
+  });
+}
+
+// Export for Vercel Serverless Functions
+module.exports = app;

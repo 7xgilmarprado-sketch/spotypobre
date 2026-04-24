@@ -1,6 +1,6 @@
 const express = require('express');
+const { Innertube } = require('youtubei.js');
 const youtubedl = require('youtube-dl-exec');
-const youtubeSearch = require('youtube-search-api');
 const path = require('path');
 
 const app = express();
@@ -9,11 +9,19 @@ const PORT = process.env.PORT || 3000;
 // Serve static files
 app.use(express.static(path.join(__dirname, 'public')));
 
+let youtube;
+
+// Initialize YouTube instance once
+async function initYoutube() {
+  if (!youtube) {
+    youtube = await Innertube.create();
+  }
+  return youtube;
+}
+
 // --- API Routes ---
 
-// Search YouTube using play-dl (More resilient on Vercel)
-const play = require('play-dl');
-
+// Search YouTube using YouTubei.js (Best for Vercel)
 app.get('/api/search', async (req, res) => {
   const query = req.query.q;
   if (!query) {
@@ -21,50 +29,30 @@ app.get('/api/search', async (req, res) => {
   }
 
   try {
-    const results = await play.search(query, { limit: 20 });
+    const yt = await initYoutube();
+    const results = await yt.search(query, { type: 'video' });
     
-    if (!results || results.length === 0) {
-      // Fallback a segunda API caso play-dl retorne vazio (Mecanismo anti-bloqueio)
-      const ytSearchFallback = await youtubeSearch.GetListByKeyword(query, false, 20, [{ type: 'video' }]);
-      if (ytSearchFallback && ytSearchFallback.items) {
-        const fallbacks = ytSearchFallback.items.filter(item => item.type === 'video').map(video => ({
-          id: video.id,
-          title: video.title || 'Sem título',
-          artist: video.channelTitle || video.channelName || 'Artista desconhecido',
-          thumbnail: video.thumbnail?.thumbnails?.[0]?.url || `https://i.ytimg.com/vi/${video.id}/hqdefault.jpg`,
-          duration: video.length?.simpleText || video.duration || '0:00',
-          durationSec: parseDuration(video.length?.simpleText || video.duration || '0:00'),
-          url: `https://www.youtube.com/watch?v=${video.id}`
-        }));
-        return res.json({ tracks: fallbacks });
-      }
-    }
-
-    const tracks = results.map(video => ({
+    // Filtra apenas o que é vídeo e mapeia para o nosso formato
+    const tracks = results.videos.map(video => ({
       id: video.id,
-      title: video.title || 'Sem título',
-      artist: video.channel?.name || 'Artista desconhecido',
-      thumbnail: video.thumbnails?.[0]?.url || `https://i.ytimg.com/vi/${video.id}/hqdefault.jpg`,
-      duration: video.durationRaw || '0:00',
-      durationSec: video.durationInSec || 0,
-      url: video.url || `https://www.youtube.com/watch?v=${video.id}`
+      title: video.title.text || 'Sem título',
+      artist: video.author.name || 'Artista desconhecido',
+      thumbnail: video.thumbnails[0].url || `https://i.ytimg.com/vi/${video.id}/hqdefault.jpg`,
+      duration: video.duration.text || '0:00',
+      durationSec: video.duration.seconds || 0,
+      url: `https://www.youtube.com/watch?v=${video.id}`
     }));
 
     res.json({ tracks });
   } catch (error) {
-    console.error('Search error:', error.message);
-    res.status(500).json({ error: 'Failed to search. Try again. Details: ' + error.message });
+    console.error('Search error:', error);
+    res.status(500).json({ error: 'Erro na busca: ' + error.message });
   }
 });
 
-// Stream audio using yt-dlp (redirects to avoid Vercel 10s serverless limits)
+// Stream audio using yt-dlp redirect
 app.get('/api/stream/:videoId', async (req, res) => {
   const { videoId } = req.params;
-
-  if (!/^[a-zA-Z0-9_-]{11}$/.test(videoId)) {
-    return res.status(400).json({ error: 'Invalid video ID' });
-  }
-
   const url = `https://www.youtube.com/watch?v=${videoId}`;
 
   try {
@@ -77,43 +65,24 @@ app.get('/api/stream/:videoId', async (req, res) => {
     });
 
     if (audioUrl) {
-      // Vercel Serverless limits to 10s execution. 
-      // Redirecting to Google's audio URL lets the browser handle streaming without timeouts.
       return res.redirect(302, audioUrl);
     } else {
-      throw new Error('A URL de áudio não foi encontrada');
+      throw new Error('Streaming URL not found');
     }
   } catch (error) {
-    console.error('Stream error:', error.stack || error);
-    if (!res.headersSent) {
-      res.status(500).json({ error: 'Failed to access stream url.' });
-    }
+    console.error('Stream error:', error);
+    res.status(500).json({ error: 'Streaming falhou.' });
   }
 });
 
-// Download audio using yt-dlp
+// Download audio pipeline for Offline storage
 app.get('/api/download/:videoId', async (req, res) => {
   const { videoId } = req.params;
-
-  if (!/^[a-zA-Z0-9_-]{11}$/.test(videoId)) {
-    return res.status(400).json({ error: 'Invalid video ID' });
-  }
-
   const url = `https://www.youtube.com/watch?v=${videoId}`;
 
   try {
-    const titleObj = await youtubedl(url, {
-      dumpJson: true,
-      noWarnings: true,
-      noPlaylist: true,
-    });
-    
-    const title = titleObj.title || 'download';
-    const safeTitle = title.replace(/[<>:"/\\|?*]/g, '').trim();
-
     res.setHeader('Content-Type', 'audio/webm');
-    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(safeTitle)}.webm"`);
-
+    
     const dlProcess = youtubedl.exec(url, {
       format: 'bestaudio[ext=webm]/bestaudio[ext=m4a]/bestaudio',
       output: '-',
@@ -124,44 +93,29 @@ app.get('/api/download/:videoId', async (req, res) => {
     dlProcess.stdout.pipe(res);
 
     dlProcess.catch((error) => {
-      console.error('yt-dlp download error:', error.stack || error);
-      if (!res.headersSent) {
-        res.status(500).json({ error: 'Download failed' });
-      }
+      console.error('Download error:', error);
+      if (!res.headersSent) res.status(500).json({ error: 'Download failed' });
     });
 
     req.on('close', () => {
       if (dlProcess.child) dlProcess.child.kill();
     });
-
   } catch (error) {
-    console.error('Download error:', error.stack || error);
-    if (!res.headersSent) {
-      res.status(500).json({ error: 'Failed to download.' });
-    }
+    console.error('Download error:', error);
+    if (!res.headersSent) res.status(500).json({ error: 'Download failed.' });
   }
 });
 
-// Utility: parse "M:SS" or "H:MM:SS" to seconds
-function parseDuration(str) {
-  if (!str) return 0;
-  const parts = str.split(':').map(Number);
-  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
-  if (parts.length === 2) return parts[0] * 60 + parts[1];
-  return parts[0] || 0;
-}
-
-// Fallback to index.html for SPA
+// Fallback to index.html
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Conditionally start listening if not on Vercel
+// Start server conditionally
 if (!process.env.VERCEL) {
   app.listen(PORT, () => {
     console.log(`\n🎵 Spotypobre rodando na porta ${PORT}\n`);
   });
 }
 
-// Export for Vercel Serverless Functions
 module.exports = app;

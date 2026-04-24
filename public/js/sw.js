@@ -1,6 +1,6 @@
 // ===== SPOTYPOBRE — Service Worker =====
 
-const CACHE_NAME = 'spotypobre-v1';
+const CACHE_NAME = 'spotypobre-v2';
 const STATIC_ASSETS = [
   '/',
   '/index.html',

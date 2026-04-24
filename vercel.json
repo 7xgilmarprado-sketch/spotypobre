@@ -1,22 +1,19 @@
 {
+  "version": 2,
   "builds": [
-    { "src": "server.js", "use": "@vercel/node" }
+    {
+      "src": "server.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/server.js" },
+    { "source": "/(.*)", "destination": "/public/$1" }
   ],
   "functions": {
     "server.js": {
-      "includeFiles": "node_modules/youtube-dl-exec/bin/**",
       "memory": 1024,
-      "maxDuration": 20
+      "maxDuration": 15
     }
-  },
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "/server.js"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/public/$1"
-    }
-  ]
+  }
 }

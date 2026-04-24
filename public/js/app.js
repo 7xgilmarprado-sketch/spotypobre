@@ -301,7 +301,12 @@
 
     try {
       const res = await fetch(`/api/search?q=${encodeURIComponent(query.trim())}`);
-      if (!res.ok) throw new Error();
+      
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(`Status ${res.status}: ${errorText}`);
+      }
+      
       const data = await res.json();
       const searchedTracks = data.tracks || [];
 
@@ -316,6 +321,8 @@
       els.resultsCount.textContent = `${searchedTracks.length} músicas`;
       showHomeSection('results');
     } catch (err) {
+      console.error('Fetch /api/search error:', err);
+      els.errorMessage.textContent = `Erro: ${err.message}`;
       showHomeSection('error');
     }
   }

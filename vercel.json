@@ -1,4 +1,7 @@
 {
+  "builds": [
+    { "src": "server.js", "use": "@vercel/node" }
+  ],
   "functions": {
     "server.js": {
       "includeFiles": "node_modules/youtube-dl-exec/bin/**",

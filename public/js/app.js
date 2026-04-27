@@ -461,12 +461,13 @@
 
   async function downloadTrackToDevice(track) {
     if (!track || !track.id) return;
-    showToast('🚀 Iniciando download do arquivo...', 2000);
+    showToast('🚀 Iniciando download em MP3...', 3000);
     
-    const url = `/api/download/${track.id}`;
+    // Passamos o título como query param para o servidor usar no Content-Disposition
+    const url = `/api/download/mp3/${track.id}?title=${encodeURIComponent(track.title)}`;
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${track.title}.webm`;
+    a.download = `${track.title}.mp3`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
